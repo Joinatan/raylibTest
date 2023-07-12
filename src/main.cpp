@@ -2,6 +2,7 @@
 #include "raymath.h"
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 int main() {
 
@@ -9,6 +10,7 @@ int main() {
   //--------------------------------------------------------------------------------------
   const int screenWidth = 1366;
   const int screenHeight = 768;
+  // std::cout << "hej";
 
   InitWindow(screenWidth, screenHeight,
              "raylib [core] example - 3d camera mode");
@@ -65,9 +67,9 @@ int main() {
   planeModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = chessTexture;
 
   //--------------------PLANE SHADER TEST
-  Mesh shaderPlaneMesh = GenMeshPlane(100, 100, 200, 200);
+  Mesh shaderPlaneMesh = GenMeshPlane(10, 10, 200, 200);
   Model shaderPlaneModel = LoadModelFromMesh(shaderPlaneMesh);
-  Material shaderPlaneMaterial = LoadMaterialDefault();
+  shaderPlaneModel.transform = MatrixRotateXYZ((Vector3){90.0f, 00.0f, 0.0f});
 
   //-----------Load shaders
   Shader planeShader = LoadShader(
@@ -78,10 +80,28 @@ int main() {
           "/home/jonatan/Documents/kod/cpp/raylibtest/src/custom_shader.fs",
           330));
   shaderPlaneModel.materials[0].shader = planeShader;
+  //--------------SHADER TEXTURE
+  int textureLoc = GetShaderLocation(planeShader, "uTexture");
+  shaderPlaneModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture =
+      mirrisTexture;
   //------------uniform time!
   int timeLoc = GetShaderLocation(planeShader, "u_time");
-  float time = 0.0;
-  SetShaderValue(planeShader, timeLoc, &time, SHADER_UNIFORM_FLOAT);
+  Vector2 time = {0.0f, 0.0f};
+  SetShaderValue(planeShader, timeLoc, &time, SHADER_UNIFORM_VEC2);
+  //---------------uniform position
+  // int posLoc = GetShaderLocation(planeShader, "a_randomPos");
+
+  std::vector<float> randomPos;
+  float randomPosArr[200];
+  float randomFloat;
+  for (int i = 0; i < 200; i++) {
+    randomFloat = (rand() % 99) * 0.11;
+    // std::cout << randomFloat << std::endl;
+    randomPos.push_back(randomFloat);
+    randomPosArr[i] = randomFloat;
+  }
+  // SetShaderValueV(planeShader, posLoc, randomPosArr, SHADER_ATTRIB_FLOAT,
+  // 200);
 
   // Main game loop
   while (!WindowShouldClose()) // Detect window close button or ESC key
@@ -115,8 +135,16 @@ int main() {
     // SetShaderValue(planeShader, timeLoc, &time, SHADER_UNIFORM_FLOAT);
     // Draw
     //----------------------------------------------------------------------------------
-    time += 0.1;
-    SetShaderValue(planeShader, timeLoc, &time, SHADER_UNIFORM_FLOAT);
+    //----------------UPDATE UNIFORMS
+    time.x += 0.1f;
+    time.y += 0.1f;
+
+    // SetShaderValueTexture(planeShader, textureLoc, mirrisTexture);
+    SetShaderValue(planeShader, timeLoc, &time, SHADER_UNIFORM_VEC2);
+    // SetShaderValue(planeShader, posLoc, randomPosArr, SHADER_ATTRIB_FLOAT);
+
+    // SetShaderValueV(planeShader, posLoc, randomPosArr, SHADER_ATTRIB_FLOAT,
+    // 200);
     BeginDrawing();
     i += 0.01;
     cubeX += std::sin(i);
@@ -131,8 +159,8 @@ int main() {
     BeginMode3D(camera);
     DrawModel(cubeModelMirris, cubePositionMirris, 1.0, WHITE);
     DrawModel(cubeModelPurre, cubePositionPurre, 1.0, WHITE);
-    // DrawModel(planeModel, planePosition, 1.0, WHITE);
-    DrawModel(shaderPlaneModel, planePosition, 1.0, WHITE);
+    DrawModel(planeModel, planePosition, 1.0, WHITE);
+    DrawModel(shaderPlaneModel, Vector3{0.0, 2.0, -10.0}, 1.0, WHITE);
     EndMode3D();
 
     DrawFPS(10, 10);
