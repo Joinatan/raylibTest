@@ -23,6 +23,7 @@ int main() {
   camera.fovy = 70.0f;             // Camera field-of-view Y
   camera.position = (Vector3){13.0f, 3.0f, 00.0f}; // Camera position
   camera.projection = CAMERA_PERSPECTIVE;          // Camera mode type
+  // camera.projection = CAMERA_THIRD_PERSON;         // Camera mode type
   // camera.projection = CAMERA_FIRST_PERSON; // Camera mode type
   Vector2 mousePos;
 
@@ -66,20 +67,37 @@ int main() {
   cubeModelPurre.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = purreTexture;
   planeModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = chessTexture;
 
-  //--------------------PLANE SHADER TEST
-  Mesh shaderPlaneMesh = GenMeshPlane(10, 10, 200, 200);
+  //--------------------PLANE SHADER TEST1
+  Mesh shaderPlaneMesh = GenMeshPlane(10.f, 10.f, 200, 200);
   Model shaderPlaneModel = LoadModelFromMesh(shaderPlaneMesh);
   shaderPlaneModel.transform = MatrixRotateXYZ((Vector3){90.0f, 00.0f, 0.0f});
 
+  //--------------------PLANE SHADER TEST1
+  Mesh shaderPlaneMesh2 = GenMeshPlane(10.f, 10.f, 200, 200);
+  Model shaderPlaneModel2 = LoadModelFromMesh(shaderPlaneMesh2);
+  shaderPlaneModel2.transform = MatrixTranslate(2.0f, 0.0f, 0.0f);
+  shaderPlaneModel2.transform = MatrixRotateXYZ((Vector3){0.0f, 0.0f, -90.0f});
+
   //-----------Load shaders
-  Shader planeShader = LoadShader(
-      TextFormat(
-          "/home/jonatan/Documents/kod/cpp/raylibtest/src/custom_shader.vs",
-          330),
-      TextFormat(
-          "/home/jonatan/Documents/kod/cpp/raylibtest/src/custom_shader.fs",
-          330));
+  Shader planeShader =
+      LoadShader(TextFormat("/home/jonatan/Documents/kod/cpp/raylibtest/src/"
+                            "custom_shaderVertex.glsl",
+                            330),
+                 TextFormat("/home/jonatan/Documents/kod/cpp/raylibtest/src/"
+                            "custom_shaderFrag.glsl",
+                            330));
   shaderPlaneModel.materials[0].shader = planeShader;
+
+  Shader planeShader2 =
+      LoadShader(TextFormat("/home/jonatan/Documents/kod/cpp/raylibtest/src/"
+                            "custom_shaderVertex2.glsl",
+                            330),
+                 // 0);
+                 TextFormat("/home/jonatan/Documents/kod/cpp/raylibtest/src/"
+                            "custom_shaderFrag2.glsl",
+                            330));
+  shaderPlaneModel2.materials[0].shader = planeShader2;
+
   //--------------SHADER TEXTURE
   int textureLoc = GetShaderLocation(planeShader, "uTexture");
   shaderPlaneModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture =
@@ -141,6 +159,7 @@ int main() {
 
     // SetShaderValueTexture(planeShader, textureLoc, mirrisTexture);
     SetShaderValue(planeShader, timeLoc, &time, SHADER_UNIFORM_VEC2);
+    // SetShaderValue(planeShader2, timeLoc, &time, SHADER_UNIFORM_VEC2);
     // SetShaderValue(planeShader, posLoc, randomPosArr, SHADER_ATTRIB_FLOAT);
 
     // SetShaderValueV(planeShader, posLoc, randomPosArr, SHADER_ATTRIB_FLOAT,
@@ -161,6 +180,7 @@ int main() {
     DrawModel(cubeModelPurre, cubePositionPurre, 1.0, WHITE);
     DrawModel(planeModel, planePosition, 1.0, WHITE);
     DrawModel(shaderPlaneModel, Vector3{0.0, 2.0, -10.0}, 1.0, WHITE);
+    DrawModel(shaderPlaneModel2, Vector3{1.0, 2.0, 0.0}, 1.0, WHITE);
     EndMode3D();
 
     DrawFPS(10, 10);
