@@ -43,6 +43,7 @@ void renderSphere(btRigidBody *sphere) {
   // set color
 }
 
+//--------------------------------MAIN
 int main() {
 
   collisionConfig = new btDefaultCollisionConfiguration();
@@ -53,7 +54,7 @@ int main() {
   // create world
   world = new btDiscreteDynamicsWorld(dispatcher, broadPhase, solver,
                                       collisionConfig);
-  world->setGravity(btVector3(0, -9, 0));
+  world->setGravity(btVector3(0, -9.8, 0));
 
   btTransform t;
   t.setIdentity();
@@ -64,13 +65,14 @@ int main() {
   btRigidBody::btRigidBodyConstructionInfo info(0.0, motion, plane);
   btRigidBody *planeBody = new btRigidBody(info);
   world->addRigidBody(planeBody);
-  planeBody->setRestitution(1.0f);
+  planeBody->setRestitution(0.8f);
 
   bodies.push_back(planeBody);
 
   float testSphereRad = 4;
-  btRigidBody *testSphere = addSphere(testSphereRad, 0.0, 20.0, 20.0, 1.0);
-  testSphere->setRestitution(1.0f);
+  btRigidBody *testSphere = addSphere(testSphereRad, 0.0, 20.0, 20.0, 4.0);
+  testSphere->setRestitution(0.8f);
+
   //  raylib Initialization
   //--------------------------------------------------------------------------------------
   //
@@ -111,7 +113,7 @@ int main() {
   Mesh planeMesh = GenMeshPlane(100, 100, 100, 100);
   Model planeModel = LoadModelFromMesh(planeMesh);
   Vector3 planePosition = {0.0f, 0.0f, 0.0f};
-  Material planeMaterial = LoadMaterialDefault();
+  // Material planeMaterial = LoadMaterialDefault();
 
   //----------------------------------
 
@@ -173,6 +175,18 @@ int main() {
   SetShaderValue(planeShader, timeLoc, &time, SHADER_UNIFORM_VEC2);
   //---------------uniform position
   // int posLoc = GetShaderLocation(planeShader, "a_randomPos");
+  //
+  // LOAD OBJ
+  Model human = LoadModel(TextFormat(
+      "/home/jonatan/Documents/kod/cpp/raylibtest/artwork/Human2.obj"));
+  Texture2D humanTexture =
+      LoadTexture("/home/jonatan/Documents/kod/cpp/raylibtest/artwork/"
+                  "humanTexturePurre.png");
+  // SetMaterialTexture(&human.materials[0], MATERIAL_MAP_DIFFUSE,
+  // humanTexture);
+  human.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = humanTexture;
+
+  // Texture
 
   std::vector<float> randomPos;
   float randomPosArr[200];
@@ -192,12 +206,15 @@ int main() {
   std::chrono::steady_clock::time_point oldTime =
       std::chrono::steady_clock::now();
   // Main game loop
+  //
+  while (!IsTextureReady(humanTexture)) {
+  }
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
     // Update
     timer = std::chrono::steady_clock::now();
     auto dur = timer - oldTime;
-    if (dur > std::chrono::milliseconds(1000 / 60)) {
+    if (dur > std::chrono::milliseconds(16)) {
       world->stepSimulation(1 / 60.0);
       // std::cout << "10\n";
       oldTime = timer;
@@ -229,6 +246,10 @@ int main() {
     if (IsKeyDown(KEY_T)) {
       camera.position.x += 0.1;
     }
+    if (IsKeyDown(KEY_Y)) {
+      testSphere->activate(true);
+      testSphere->applyCentralImpulse(btVector3(0.0, 12.0, 0.0));
+    }
 
     // mousePos = GetMousePosition();
     // camera.target = (Vector3){mousePos.x, mousePos.y, 1.0f};
@@ -251,6 +272,7 @@ int main() {
     // SetShaderValueV(planeShader, posLoc, randomPosArr, SHADER_ATTRIB_FLOAT,
     // 200);
     BeginDrawing();
+
     i += 0.01;
     cubeX += std::sin(i);
     cameraP += std::cos(i);
@@ -270,11 +292,14 @@ int main() {
                        (float)testSphereCoor.getY(),
                        (float)testSphereCoor.getZ()},
                testSphereRad, RED);
+    DrawModel(human, Vector3{0.0, (float)(testSphereCoor.getY() - 4.0), 10.0},
+              1.0, WHITE);
     DrawModel(cubeModelMirris, cubePositionMirris, 1.0, WHITE);
     DrawModel(cubeModelPurre, cubePositionPurre, 1.0, WHITE);
     DrawModel(planeModel, planePosition, 1.0, WHITE);
     DrawModel(shaderPlaneModel, Vector3{0.0, 2.0, -10.0}, 1.0, WHITE);
-    DrawModel(shaderPlaneModel2, Vector3{1.0, 2.0, 0.0}, 1.0, WHITE);
+    DrawModel(shaderPlaneModel2,
+              Vector3{-float(testSphereCoor.getY()), 2.0, 0.0}, 1.0, WHITE);
     EndMode3D();
 
     DrawFPS(10, 10);
