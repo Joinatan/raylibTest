@@ -1,8 +1,11 @@
 #include "raylib.h"
 #include "raymath.h"
+#include <btBulletDynamicsCommon.h>
 #include <cmath>
 #include <iostream>
 #include <vector>
+
+btDynamicsWorld *world;
 
 int main() {
 
@@ -142,6 +145,15 @@ int main() {
     // }
     if (IsKeyDown(KEY_CAPS_LOCK)) {
       CloseWindow();
+    }
+    if (IsKeyDown(KEY_SPACE)) {
+      camera.position.y += 0.1;
+    }
+    if (IsKeyDown(KEY_C)) {
+      camera.position.y -= 0.1;
+    }
+    if (IsKeyDown(KEY_T)) {
+      camera.position.x += 0.1;
     }
 
     // mousePos = GetMousePosition();
