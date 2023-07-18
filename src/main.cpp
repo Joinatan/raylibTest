@@ -1,19 +1,81 @@
+#define BT_USE_DOUBLE_PRECISION 1
+
 #include "raylib.h"
 #include "raymath.h"
 #include <btBulletDynamicsCommon.h>
+#include <chrono>
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <vector>
 
-btDynamicsWorld *world;
+// bullet init
+btDynamicsWorld *world; // world
+btDispatcher *dispatcher;
+btBroadphaseInterface *broadPhase;         // collision algorithm
+btConstraintSolver *solver;                // calcuate forces
+btCollisionConfiguration *collisionConfig; // use default collision
+// std::shared_ptr<btCollisionConfiguration> collisionConfig =
+//     std::make_shared<btDefaultCollisionConfiguration>();
+std::vector<btRigidBody *> bodies;
+
+btRigidBody *addSphere(float rad, float x, float y, float z, float mass) {
+  btTransform t;
+  t.setIdentity();
+  t.setOrigin(btVector3(x, y, z));
+  btSphereShape *sphere = new btSphereShape(rad);
+  btVector3 inertia(0, 0, 0);
+  if (mass != 0.0) {
+    sphere->calculateLocalInertia(mass, inertia);
+  }
+
+  btMotionState *motion = new btDefaultMotionState(t);
+  btRigidBody::btRigidBodyConstructionInfo info(mass, motion, sphere, inertia);
+  btRigidBody *body = new btRigidBody(info);
+  world->addRigidBody(body);
+  bodies.push_back(body);
+  return body;
+}
+
+void renderSphere(btRigidBody *sphere) {
+  if (sphere->getCollisionShape()->getShapeType() != SPHERE_SHAPE_PROXYTYPE)
+    return;
+  // set color
+}
 
 int main() {
 
-  // Initialization
+  collisionConfig = new btDefaultCollisionConfiguration();
+  dispatcher = new btCollisionDispatcher(collisionConfig);
+  broadPhase = new btDbvtBroadphase();
+  solver = new btSequentialImpulseConstraintSolver();
+
+  // create world
+  world = new btDiscreteDynamicsWorld(dispatcher, broadPhase, solver,
+                                      collisionConfig);
+  world->setGravity(btVector3(0, -9, 0));
+
+  btTransform t;
+  t.setIdentity();
+  t.setOrigin(btVector3(0, 0, 0));
+  btStaticPlaneShape *plane =
+      new btStaticPlaneShape(btVector3(0.0, 1.0, 0.0), 0.0);
+  btMotionState *motion = new btDefaultMotionState(t);
+  btRigidBody::btRigidBodyConstructionInfo info(0.0, motion, plane);
+  btRigidBody *planeBody = new btRigidBody(info);
+  world->addRigidBody(planeBody);
+  planeBody->setRestitution(1.0f);
+
+  bodies.push_back(planeBody);
+
+  float testSphereRad = 4;
+  btRigidBody *testSphere = addSphere(testSphereRad, 0.0, 20.0, 20.0, 1.0);
+  testSphere->setRestitution(1.0f);
+  //  raylib Initialization
   //--------------------------------------------------------------------------------------
+  //
   const int screenWidth = 1366;
   const int screenHeight = 768;
-  // std::cout << "hej";
 
   InitWindow(screenWidth, screenHeight,
              "raylib [core] example - 3d camera mode");
@@ -123,11 +185,23 @@ int main() {
   }
   // SetShaderValueV(planeShader, posLoc, randomPosArr, SHADER_ATTRIB_FLOAT,
   // 200);
-
+  //
+  // CLOCK
+  std::chrono::steady_clock::time_point timer =
+      std::chrono::steady_clock::now();
+  std::chrono::steady_clock::time_point oldTime =
+      std::chrono::steady_clock::now();
   // Main game loop
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
     // Update
+    timer = std::chrono::steady_clock::now();
+    auto dur = timer - oldTime;
+    if (dur > std::chrono::milliseconds(1000 / 60)) {
+      world->stepSimulation(1 / 60.0);
+      // std::cout << "10\n";
+      oldTime = timer;
+    }
     //----------------------------------------------------------------------------------
     // TODO: Update your variables here
     //=================CONTROLS
@@ -187,7 +261,15 @@ int main() {
     // camera.position.z = (float)std::sin(i) * 10.0f;
     // camera.position.x = (float)cos(i) * 10.0f;
 
+    btTransform k = testSphere->getWorldTransform();
+    btVector3 testSphereCoor = k.getOrigin();
+    // float y = testSphereCoor.getX();
+    // Vector3 testSpherePos = Vector3(k.getOrigin(x), k.getOrigin(y);
     BeginMode3D(camera);
+    DrawSphere(Vector3{(float)testSphereCoor.getX(),
+                       (float)testSphereCoor.getY(),
+                       (float)testSphereCoor.getZ()},
+               testSphereRad, RED);
     DrawModel(cubeModelMirris, cubePositionMirris, 1.0, WHITE);
     DrawModel(cubeModelPurre, cubePositionPurre, 1.0, WHITE);
     DrawModel(planeModel, planePosition, 1.0, WHITE);

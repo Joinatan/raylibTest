@@ -19,13 +19,16 @@ target_include_directories(main
   )
 cmake_print_variables(BULLET_INCLUDE_DIR)
 
+target_link_directories(main
+  PRIVATE
+  "/usr/local/lib/"
+  )
 
 target_link_libraries(main
-  PRIVATE
-  ${BULLET_LIBRARIES}
   PUBLIC
   # /include/raylib/libraylib.a
   libraylib.a
+  ${BULLET_LIBRARIES}
   # libBullet3Common.so
   )
 
