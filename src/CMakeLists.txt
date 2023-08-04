@@ -14,10 +14,12 @@ find_package(Bullet CONFIG REQUIRED)
 
 target_include_directories(main
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../libraries/bullet3/src/
-  # ${BULLET_INCLUDE_DIR}
+  /home/jonatan/Documents/kod/cpp/libraries/bullet3/src/BulletCollision/BulletCollisionShapes/
+  ${BULLET_INCLUDE_DIR}
 
   )
 cmake_print_variables(BULLET_INCLUDE_DIR)
+cmake_print_variables(${CMAKE_CURRENT_SOURCE_DIR}/../../libraries/bullet3/src/BulletCollision/CollisionShapes/)
 
 target_link_directories(main
   PRIVATE

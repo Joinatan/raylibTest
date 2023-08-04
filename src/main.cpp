@@ -1,5 +1,6 @@
 #define BT_USE_DOUBLE_PRECISION 1
 
+#include "/home/jonatan/Documents/kod/cpp/libraries/bullet3/src/BulletCollision/CollisionShapes/btHeightfieldTerrainShape.h"
 #include "raylib.h"
 #include "raymath.h"
 #include <btBulletDynamicsCommon.h>
@@ -24,7 +25,7 @@ btRigidBody *addSphere(float rad, float x, float y, float z, float mass) {
   t.setIdentity();
   t.setOrigin(btVector3(x, y, z));
   btSphereShape *sphere = new btSphereShape(rad);
-  btVector3 inertia(0, 0, 0);
+  btVector3 inertia(1.0, 1.0, 1.0);
   if (mass != 0.0) {
     sphere->calculateLocalInertia(mass, inertia);
   }
@@ -32,6 +33,8 @@ btRigidBody *addSphere(float rad, float x, float y, float z, float mass) {
   btMotionState *motion = new btDefaultMotionState(t);
   btRigidBody::btRigidBodyConstructionInfo info(mass, motion, sphere, inertia);
   btRigidBody *body = new btRigidBody(info);
+  body->setFriction(8.5f);
+  // body.calculateLocalInertia(mass, inertia);
   world->addRigidBody(body);
   bodies.push_back(body);
   return body;
@@ -54,24 +57,25 @@ int main() {
   // create world
   world = new btDiscreteDynamicsWorld(dispatcher, broadPhase, solver,
                                       collisionConfig);
-  world->setGravity(btVector3(0, -9.8, 0));
+  world->setGravity(btVector3(0, -9.0, 0));
 
   btTransform t;
   t.setIdentity();
   t.setOrigin(btVector3(0, 0, 0));
+  // ----------------plane physics
   btStaticPlaneShape *plane =
       new btStaticPlaneShape(btVector3(0.0, 1.0, 0.0), 0.0);
   btMotionState *motion = new btDefaultMotionState(t);
   btRigidBody::btRigidBodyConstructionInfo info(0.0, motion, plane);
   btRigidBody *planeBody = new btRigidBody(info);
-  world->addRigidBody(planeBody);
+  // world->addRigidBody(planeBody);
   planeBody->setRestitution(0.8f);
-
+  planeBody->setFriction(0.5f);
   bodies.push_back(planeBody);
 
-  float testSphereRad = 4;
-  btRigidBody *testSphere = addSphere(testSphereRad, 0.0, 20.0, 20.0, 4.0);
-  testSphere->setRestitution(0.8f);
+  float testSphereRad = 4.0;
+  btRigidBody *testSphere = addSphere(testSphereRad, 0.0, 120.0, 20.0, 4.0);
+  testSphere->setRestitution(0.9f);
 
   //  raylib Initialization
   //--------------------------------------------------------------------------------------
@@ -185,6 +189,9 @@ int main() {
   // SetMaterialTexture(&human.materials[0], MATERIAL_MAP_DIFFUSE,
   // humanTexture);
   human.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = humanTexture;
+  Vector3 humanPosition;
+  // playerPosition
+  Vector3 playerPosition = {0.0, 0.0, 0.0};
 
   // Texture
 
@@ -205,20 +212,71 @@ int main() {
       std::chrono::steady_clock::now();
   std::chrono::steady_clock::time_point oldTime =
       std::chrono::steady_clock::now();
+
+  // ------------------------- HEIGHT MAP
+  Image heightMapImage = LoadImage(
+      "/home/jonatan/Documents/kod/cpp/raylibtest/artwork/heightMap.png");
+  Texture heightMapTexture = LoadTextureFromImage(heightMapImage);
+  Mesh heightMapMesh =
+      GenMeshHeightmap(heightMapImage, (Vector3){257.0f, 16.0f, 257.0f});
+  Model terrainModel = LoadModelFromMesh(heightMapMesh);
+  // UnloadImage(heightMapImage);
+  terrainModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = chessTexture;
+
+  // -----------------------heightmap physics
+  // get image data
+  // const void *imageData = heightMapTexture.GetData();
+
+  // std::cout << "mipmaps: " << (int *)heightMapImage.data << std::endl;
+  btHeightfieldTerrainShape *terrainShape = new btHeightfieldTerrainShape(
+      heightMapTexture.height, heightMapTexture.width, heightMapImage.data,
+      btScalar((1.0 / 256) * 16), btScalar(0.0f), btScalar(17.0f), 1,
+      PHY_ScalarType(PHY_UCHAR), true);
+
+  btTransform t2;
+  t2.setIdentity();
+  t2.setOrigin(btVector3(0, 0, 0));
+  btMotionState *motion2 = new btDefaultMotionState(t2);
+  btRigidBody::btRigidBodyConstructionInfo infoHeightMap(0, motion2,
+                                                         terrainShape);
+  btRigidBody *terrainBody = new btRigidBody(infoHeightMap);
+  world->addRigidBody(terrainBody);
+  terrainBody->setRestitution(0.3f);
+  terrainBody->setFriction(0.8f);
+  bodies.push_back(terrainBody);
+  //
   // Main game loop
   //
-  while (!IsTextureReady(humanTexture)) {
-  }
+  //  while (!IsTextureReady(humanTexture)) {
+  //  }
+
+  // testSphere->getMotionState()->setWorldTransform(t);
+  // btTransform testSphereWorldTransform = testSphere->setWorldTransform();
+  // btVector3 testSphereCoor = testSphereWorldTransform.getOrigin();
+  timer = std::chrono::steady_clock::now();
+  auto dur = timer - oldTime;
+  const std::chrono::duration<double> delta = dur;
+
+  // btDefaultMotionState sphereMotionState = btDefaultMotionState();
+  // btDefaultMotionState sphereMotionState = testSphere.motionState();
+  // sphereMotionState.setWorldTransform(testSphere->getWorldTransform());
+
+  btTransform spherePosFromBullet;
+  btDefaultMotionState *sphereMotionState =
+      dynamic_cast<btDefaultMotionState *>(testSphere->getMotionState());
+
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
     // Update
     timer = std::chrono::steady_clock::now();
-    auto dur = timer - oldTime;
-    if (dur > std::chrono::milliseconds(16)) {
-      world->stepSimulation(1 / 60.0);
-      // std::cout << "10\n";
-      oldTime = timer;
-    }
+    const std::chrono::duration<double> delta = dur;
+    // if (dur > std::chrono::milliseconds(15)) {
+    world->stepSimulation(
+        btScalar(std::chrono::duration<double>(delta).count()), 1,
+        btScalar(1.0) / btScalar(60.0));
+    // std::cout << "10\n";
+    oldTime = timer;
+    // }
     //----------------------------------------------------------------------------------
     // TODO: Update your variables here
     //=================CONTROLS
@@ -237,6 +295,14 @@ int main() {
     if (IsKeyDown(KEY_CAPS_LOCK)) {
       CloseWindow();
     }
+    // if (IsKeyDown(KEY_W)) {
+    //   // playerPosition.x += cos(camera.projection);
+    //   playerPosition.x += 1;
+    // }
+    // if (IsKeyDown(KEY_S)) {
+    //   // playerPosition.x += cos(camera.projection);
+    //   playerPosition.x -= 1;
+    // }
     if (IsKeyDown(KEY_SPACE)) {
       camera.position.y += 0.1;
     }
@@ -250,9 +316,17 @@ int main() {
       testSphere->activate(true);
       testSphere->applyCentralImpulse(btVector3(0.0, 12.0, 0.0));
     }
+    if (IsKeyDown(KEY_U)) {
+      testSphere->activate(true);
+      testSphere->applyCentralImpulse(btVector3(0.5, 0.0, 0.0));
+    }
+    if (IsKeyDown(KEY_I)) {
+      testSphere->activate(true);
+      testSphere->applyCentralImpulse(btVector3(-0.5, 0.0, 0.0));
+    }
 
-    // mousePos = GetMousePosition();
-    // camera.target = (Vector3){mousePos.x, mousePos.y, 1.0f};
+    // humanPosition = Vector3{0.0, (float)(testSphereCoor.getY() - 4.0), 10.0};
+    // camera.target = playerPosition; // Camera looking at point
     UpdateCamera(&camera, CAMERA_FIRST_PERSON);
 
     //----------------------------------------------------------------------------------
@@ -283,23 +357,43 @@ int main() {
     // camera.position.z = (float)std::sin(i) * 10.0f;
     // camera.position.x = (float)cos(i) * 10.0f;
 
-    btTransform k = testSphere->getWorldTransform();
-    btVector3 testSphereCoor = k.getOrigin();
+    playerPosition.x += camera.position.x + sin(camera.target.z);
+    // std::cout << camera.target.x << std::endl;
+    // playerPosition.z += sin(camera.projection);
+    // playerPosition.y = (float)(testSphereCoor.getY() - 4.0);
     // float y = testSphereCoor.getX();
     // Vector3 testSpherePos = Vector3(k.getOrigin(x), k.getOrigin(y);
+
+    //--------testar uppdatera fysiken
+    // testSphereWorldTransform = testSphere->getWorldTransform();
+    // testSphereCoor = testSphereWorldTransform.getOrigin();
+    // sphereMotionState.setWorldTransform(testSphere->getCenterOfMassTransform());
+    // spherePosFromBullet = sphereMotionState.m_graphicsWorldTrans.getOrigin();
+    spherePosFromBullet = sphereMotionState->m_graphicsWorldTrans;
+
+    // testSphere->getMotionState()->setWorldTransform();
+    // testSphere->getMotionState()->getWorldTransform(t);
+    // t.getOrigin().x();
+
     BeginMode3D(camera);
-    DrawSphere(Vector3{(float)testSphereCoor.getX(),
-                       (float)testSphereCoor.getY(),
-                       (float)testSphereCoor.getZ()},
-               testSphereRad, RED);
-    DrawModel(human, Vector3{0.0, (float)(testSphereCoor.getY() - 4.0), 10.0},
-              1.0, WHITE);
+    // DrawGrid(400, 50.0f);
+    // DrawSphere(Vector3{(float)testSphereCoor.getX(),
+    //                    (float)testSphereCoor.getY(),
+    //                    (float)testSphereCoor.getZ()},
+    //            testSphereRad, RED);
+    DrawSphere(Vector3{(float)spherePosFromBullet.getOrigin().getX(),
+                       (float)spherePosFromBullet.getOrigin().getY(),
+                       (float)spherePosFromBullet.getOrigin().getZ()},
+               testSphereRad, PURPLE);
+    DrawModel(human, playerPosition, 1.0, WHITE);
     DrawModel(cubeModelMirris, cubePositionMirris, 1.0, WHITE);
     DrawModel(cubeModelPurre, cubePositionPurre, 1.0, WHITE);
-    DrawModel(planeModel, planePosition, 1.0, WHITE);
+    // DrawModel(planeModel, planePosition, 1.0, WHITE);
+    // DrawModel(terrainModel, planePosition, 1.0, WHITE);
+    DrawModel(terrainModel, Vector3{-128.0f, -8.0f, -128.0f}, 1.0, WHITE);
     DrawModel(shaderPlaneModel, Vector3{0.0, 2.0, -10.0}, 1.0, WHITE);
-    DrawModel(shaderPlaneModel2,
-              Vector3{-float(testSphereCoor.getY()), 2.0, 0.0}, 1.0, WHITE);
+    // DrawModel(shaderPlaneModel2,
+    //           Vector3{-float(testSphereCoor.getY()), 2.0, 0.0}, 1.0, WHITE);
     EndMode3D();
 
     DrawFPS(10, 10);
