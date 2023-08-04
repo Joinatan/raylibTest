@@ -244,26 +244,16 @@ int main() {
   terrainBody->setRestitution(0.3f);
   terrainBody->setFriction(0.8f);
   bodies.push_back(terrainBody);
-  //
-  // Main game loop
-  //
-  //  while (!IsTextureReady(humanTexture)) {
-  //  }
 
-  // testSphere->getMotionState()->setWorldTransform(t);
-  // btTransform testSphereWorldTransform = testSphere->setWorldTransform();
-  // btVector3 testSphereCoor = testSphereWorldTransform.getOrigin();
-  timer = std::chrono::steady_clock::now();
-  auto dur = timer - oldTime;
-  const std::chrono::duration<double> delta = dur;
-
-  // btDefaultMotionState sphereMotionState = btDefaultMotionState();
-  // btDefaultMotionState sphereMotionState = testSphere.motionState();
-  // sphereMotionState.setWorldTransform(testSphere->getWorldTransform());
-
+  //--------------------VARIABLES FOR GETTING UPDATE FROM BULLET
   btTransform spherePosFromBullet;
   btDefaultMotionState *sphereMotionState =
       dynamic_cast<btDefaultMotionState *>(testSphere->getMotionState());
+
+  //-------------------TIMER for bullet
+  timer = std::chrono::steady_clock::now();
+  auto dur = timer - oldTime;
+  const std::chrono::duration<double> delta = dur;
 
   while (!WindowShouldClose()) // Detect window close button or ESC key
   {
@@ -271,38 +261,17 @@ int main() {
     timer = std::chrono::steady_clock::now();
     const std::chrono::duration<double> delta = dur;
     // if (dur > std::chrono::milliseconds(15)) {
+    //
+    //--------------updating physics delta time
     world->stepSimulation(
         btScalar(std::chrono::duration<double>(delta).count()), 1,
         btScalar(1.0) / btScalar(60.0));
     // std::cout << "10\n";
     oldTime = timer;
-    // }
-    //----------------------------------------------------------------------------------
-    // TODO: Update your variables here
-    //=================CONTROLS
-    // if (IsKeyDown(KEY_UP)) {
-    //   camera.position.x -= 0.1;
-    // }
-    // if (IsKeyDown(KEY_DOWN)) {
-    //   camera.position.x += 0.1;
-    // }
-    // if (IsKeyDown(KEY_LEFT)) {
-    //   camera.position.z += 0.1;
-    // }
-    // if (IsKeyDown(KEY_RIGHT)) {
-    //   camera.position.z -= 0.1;
-    // }
+
     if (IsKeyDown(KEY_CAPS_LOCK)) {
       CloseWindow();
     }
-    // if (IsKeyDown(KEY_W)) {
-    //   // playerPosition.x += cos(camera.projection);
-    //   playerPosition.x += 1;
-    // }
-    // if (IsKeyDown(KEY_S)) {
-    //   // playerPosition.x += cos(camera.projection);
-    //   playerPosition.x -= 1;
-    // }
     if (IsKeyDown(KEY_SPACE)) {
       camera.position.y += 0.1;
     }
@@ -325,8 +294,6 @@ int main() {
       testSphere->applyCentralImpulse(btVector3(-0.5, 0.0, 0.0));
     }
 
-    // humanPosition = Vector3{0.0, (float)(testSphereCoor.getY() - 4.0), 10.0};
-    // camera.target = playerPosition; // Camera looking at point
     UpdateCamera(&camera, CAMERA_FIRST_PERSON);
 
     //----------------------------------------------------------------------------------
@@ -357,30 +324,11 @@ int main() {
     // camera.position.z = (float)std::sin(i) * 10.0f;
     // camera.position.x = (float)cos(i) * 10.0f;
 
-    playerPosition.x += camera.position.x + sin(camera.target.z);
-    // std::cout << camera.target.x << std::endl;
-    // playerPosition.z += sin(camera.projection);
-    // playerPosition.y = (float)(testSphereCoor.getY() - 4.0);
-    // float y = testSphereCoor.getX();
-    // Vector3 testSpherePos = Vector3(k.getOrigin(x), k.getOrigin(y);
-
-    //--------testar uppdatera fysiken
-    // testSphereWorldTransform = testSphere->getWorldTransform();
-    // testSphereCoor = testSphereWorldTransform.getOrigin();
-    // sphereMotionState.setWorldTransform(testSphere->getCenterOfMassTransform());
-    // spherePosFromBullet = sphereMotionState.m_graphicsWorldTrans.getOrigin();
+    //--------------get update on position from BULLET
     spherePosFromBullet = sphereMotionState->m_graphicsWorldTrans;
 
-    // testSphere->getMotionState()->setWorldTransform();
-    // testSphere->getMotionState()->getWorldTransform(t);
-    // t.getOrigin().x();
-
     BeginMode3D(camera);
-    // DrawGrid(400, 50.0f);
-    // DrawSphere(Vector3{(float)testSphereCoor.getX(),
-    //                    (float)testSphereCoor.getY(),
-    //                    (float)testSphereCoor.getZ()},
-    //            testSphereRad, RED);
+
     DrawSphere(Vector3{(float)spherePosFromBullet.getOrigin().getX(),
                        (float)spherePosFromBullet.getOrigin().getY(),
                        (float)spherePosFromBullet.getOrigin().getZ()},
